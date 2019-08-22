@@ -109,9 +109,9 @@ object AppId2AppNameUtils {
         )
       })
 
-    val AppInfo: RDD[Row] = dict.map(d => {
-      val strings: Array[String] = d.split("\t", -1)
-      Row(strings(1), strings(4))
+    val AppInfo: RDD[Row] =dict.filter(_.split("\t",-1).length >= 5).map(x => {
+      val strings: Array[String] = x.split("\t",-1)
+      Row(strings(1),strings(4))
     })
 
 
@@ -126,6 +126,9 @@ object AppId2AppNameUtils {
 
     spark.createDataFrame(rowRDD,SchemaUtils.structtype).createOrReplaceTempView("allValues")
 
-    spark.sql("select * from AppInfotable").show()
+    spark.sql("select appid,appname from allValues where appname ='未知'").show()
+
+
+
   }
 }
