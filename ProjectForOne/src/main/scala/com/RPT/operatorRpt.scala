@@ -108,31 +108,31 @@ object operatorRpt {
 
     spark.createDataFrame(rowRDD,SchemaUtils.structtype).createOrReplaceTempView("allValues")
 
-    spark.sql(
-      """
-        |select ispname,
-        |      sum(OriginalRequest)  originalReques,
-        |      sum(ValidRequest)  validRequest,
-        |      sum(SuccessRequest)  successRequest,
-        |      sum(ParticipateBid)  participateBid,
-        |      sum(SuccessBid)/sum(ParticipateBid)  ParticiateSuccessed,
-        |      sum(Show)  show,
-        |      sum(Click)  click,
-        |      sum(Click)/sum(Show) ClickPoint,
-        |      sum(WinPrice) winprice,sum(adpayment) adpayment
-        |      from
-        |      (select ispname,
-        |	     case when REQUESTMODE=1 and PROCESSNODE>=1 then 1 else 0 end OriginalRequest,
-        |      case when REQUESTMODE=1 and PROCESSNODE>=2 then 1 else 0 end ValidRequest,
-        |      case when REQUESTMODE=1 and PROCESSNODE>=3 then 1 else 0 end SuccessRequest,
-        |      case when ISEFFECTIVE=1 and ISBILLING=1 and ISBID=1 then 1 else 0 end ParticipateBid,
-        |      case when ISEFFECTIVE=1 and ISBILLING=1 and ISWIN=1 then 1 else 0 end SuccessBid,
-        |      case when REQUESTMODE=2 and ISEFFECTIVE=1 then 1 else 0 end Show,
-        |      case when REQUESTMODE=3 and ISEFFECTIVE=1 then 1 else 0 end Click,
-        |      case when ISEFFECTIVE=1 and ISBILLING=1 and ISWIN=1 then 1 else 0 end adflag,
-        |      WinPrice,adpayment
-        |      from allValues) tmp group by ispname
-      """.stripMargin).show()
+//    spark.sql(
+//      """
+//        |select ispname,
+//        |      sum(OriginalRequest)  originalReques,
+//        |      sum(ValidRequest)  validRequest,
+//        |      sum(SuccessRequest)  successRequest,
+//        |      sum(ParticipateBid)  participateBid,
+//        |      sum(SuccessBid)/sum(ParticipateBid)  ParticiateSuccessed,
+//        |      sum(Show)  show,
+//        |      sum(Click)  click,
+//        |      sum(Click)/sum(Show) ClickPoint,
+//        |      sum(WinPrice) winprice,sum(adpayment) adpayment
+//        |      from
+//        |      (select ispname,
+//        |	     case when REQUESTMODE=1 and PROCESSNODE>=1 then 1 else 0 end OriginalRequest,
+//        |      case when REQUESTMODE=1 and PROCESSNODE>=2 then 1 else 0 end ValidRequest,
+//        |      case when REQUESTMODE=1 and PROCESSNODE>=3 then 1 else 0 end SuccessRequest,
+//        |      case when ISEFFECTIVE=1 and ISBILLING=1 and ISBID=1 then 1 else 0 end ParticipateBid,
+//        |      case when ISEFFECTIVE=1 and ISBILLING=1 and ISWIN=1 then 1 else 0 end SuccessBid,
+//        |      case when REQUESTMODE=2 and ISEFFECTIVE=1 then 1 else 0 end Show,
+//        |      case when REQUESTMODE=3 and ISEFFECTIVE=1 then 1 else 0 end Click,
+//        |      case when ISEFFECTIVE=1 and ISBILLING=1 and ISWIN=1 then 1 else 0 end adflag,
+//        |      WinPrice,adpayment
+//        |      from allValues) tmp group by ispname
+//      """.stripMargin).show()
 
   }
 }

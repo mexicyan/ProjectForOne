@@ -11,12 +11,8 @@ import org.apache.spark.{SparkConf, SparkContext}
 object txt2Parquet {
   def main(args: Array[String]): Unit = {
     // 判断路径是否正确
-    if(args.length != 2){
-      println("目录参数不正确，退出程序")
-      sys.exit()
-    }
+
     // 创建一个集合保存输入和输出目录
-    val Array(inputPath,outputPath) = args
 
       // 设置序列化方式 采用Kyro序列化方式，比默认序列化方式性能高
 
@@ -30,7 +26,7 @@ object txt2Parquet {
       .getOrCreate()
     // 设置压缩方式 使用Snappy方式进行压缩
     // 进行数据的读取，处理分析数据
-    val lines = sQLContext.read.textFile(inputPath).rdd
+    val lines = sQLContext.read.textFile("dir/originRes").rdd
     // 按要求切割，并且保证数据的长度大于等于85个字段，
     // 如果切割的时候遇到相同切割条件重复的情况下，需要切割的话，那么后面需要加上对应匹配参数
     // 这样切割才会准确 比如 ,,,,,,, 会当成一个字符切割 需要加上对应的匹配参数
@@ -128,7 +124,7 @@ object txt2Parquet {
     // 构建DF
     val df = sQLContext.createDataFrame(rowRDD,SchemaUtils.structtype)
     // 保存数据
-    df.write.parquet(outputPath)
+    df.write.parquet("dir/parquet")
 
 
   }
