@@ -61,7 +61,14 @@ object tagsContext {
 
       (userId,adtagslist++appnamelist++adplatformlist++machinetagslist++keywordList++locationtagslist)
     })
-    test.rdd.foreach(println)
+    test.rdd.reduceByKey((list1,list2)=>
+      // List(("lN插屏",1),("LN全屏",1),("ZC沈阳",1),("ZP河北",1)....)
+      (list1:::list2)
+        // List(("APP爱奇艺",List()))
+        .groupBy(_._1)
+        .mapValues(_.foldLeft[Int](0)(_+_._2))
+        .toList
+    ).foreach(println)
   }
 
 
