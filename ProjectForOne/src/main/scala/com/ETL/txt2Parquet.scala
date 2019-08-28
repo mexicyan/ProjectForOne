@@ -20,7 +20,7 @@ object txt2Parquet {
 
     val sQLContext = SparkSession.builder()
       .appName(this.getClass.getName)
-      .master("local[2]")
+      .master("local[*]")
       .config("spark.sql.warehouse.dir", "D://spark-warehouse")
       .enableHiveSupport()
       .getOrCreate()
@@ -31,7 +31,7 @@ object txt2Parquet {
     // 如果切割的时候遇到相同切割条件重复的情况下，需要切割的话，那么后面需要加上对应匹配参数
     // 这样切割才会准确 比如 ,,,,,,, 会当成一个字符切割 需要加上对应的匹配参数
 
-    val rowRDD = lines.map(t=>t.split(",",t.length)).filter(_.length >= 85)
+    val rowRDD = lines.map(t=>t.split(",",-1)).filter(_.length >= 85)
       .map(arr=>{
         Row(
           arr(0),
@@ -124,7 +124,7 @@ object txt2Parquet {
     // 构建DF
     val df = sQLContext.createDataFrame(rowRDD,SchemaUtils.structtype)
     // 保存数据
-    df.write.parquet("dir/parquet")
+    df.write.parquet("dir/parquet/")
 
 
   }

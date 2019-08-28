@@ -12,7 +12,7 @@ object APp2Jedis {
     val conf = new SparkConf().setAppName("app").setMaster("local[*]")
     val sc = new SparkContext(conf)
     // 读取字段文件
-    val dict = sc.textFile("D:\\gp22\\项目day01\\Spark用户画像分析\\app_dict.txt")
+    val dict = sc.textFile("die/idct")
     // 读取字段文件
     dict.map(_.split("\t",-1))
       .filter(_.length>=5).foreachPartition(arr=>{

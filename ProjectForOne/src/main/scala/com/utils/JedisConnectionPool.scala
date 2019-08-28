@@ -14,7 +14,7 @@ object JedisConnectionPool {
   // 最大空闲
   config.setMaxIdle(10)
   // 创建连接
-  val pool = new JedisPool(config,"hadoop02",6379,10000,"123")
+  val pool = new JedisPool(config,"192.168.146.11", 6379)
 
   def getConnection():Jedis ={
     pool.getResource

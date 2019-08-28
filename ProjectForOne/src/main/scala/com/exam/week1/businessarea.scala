@@ -1,5 +1,6 @@
 package com.exam.week1
 
+import ch.hsr.geohash.GeoHash
 import com.alibaba.fastjson.{JSON, JSONObject}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
@@ -9,10 +10,20 @@ import scala.collection.mutable.ListBuffer
 
 object businessarea {
   def main(args: Array[String]): Unit = {
-    val conf = new SparkConf().setAppName(this.getClass.getName).setMaster("local[2]")
-    val sc = new SparkContext(conf)
+    val spark = SparkSession.builder()
+      .appName(this.getClass.getName)
+      .master("local[*]")
+      .config("spark.sql.warehouse.dir", "D://spark-warehouse")
+      .enableHiveSupport()
+      .getOrCreate()
 
-    val file = sc.textFile("dir/json/json.txt")
+//    val file = spark.sparkContext.textFile("dir/json")
+
+//    val file = spark.sparkContext.textFile("dir/json")
+    val file = spark.read.textFile("dir/json").rdd
+    file.foreach(println)
+
+
     val result1: RDD[String] = file.map(line => {
       // 创建集合 保存数据
       val buffer = collection.mutable.ListBuffer[String]()
@@ -40,14 +51,23 @@ object businessarea {
       buffer.mkString(",")
     })
 
+
+
+//    result1.flatMap(x => {
+//      x.split(",").map((_,1))
+//    }).reduceByKey(_+_)
+//      .foreach(println)
+
+    result1.flatMap(x => {
+      x.split(",")
+    }).map(x => (x,1))
+      .reduceByKey(_+_)
+      .foreach(println)
+
+
+
     //    result1.foreach(println)
 
-    result1.flatMap(line=>{
-      line.split(",").map((_,1))
-    }).filter(x=> !x._1.equals("[]")).reduceByKey(_+_).foreach(println)
-
-
-    //    result1.flatMap(x=>{
     //      val linearr: Array[String] = x.split(",")
     //      (linearr.toList(0),linearr.size)
     //    }).foreach(println)

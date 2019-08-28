@@ -1,11 +1,23 @@
 package com.Tags
 
-import com.utils.TagUtils
+import com.utils.{TagUtils, hbase2writrutils}
+
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.rdd.RDD
-import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
+
+
+import org.apache.spark.sql.{SparkSession}
 import redis.clients.jedis.Jedis
+import com.typesafe.config.ConfigFactory
+
+import org.apache.hadoop.hbase.client.{ConnectionFactory, Put}
+import org.apache.hadoop.hbase.io.ImmutableBytesWritable
+import org.apache.hadoop.hbase.mapred.TableOutputFormat
+import org.apache.hadoop.hbase.util.Bytes
+import org.apache.hadoop.hbase.{HColumnDescriptor, HTableDescriptor, TableName}
+import org.apache.hadoop.mapred.JobConf
+
+import org.apache.spark.rdd.RDD
+
 
 object tagsContext {
   def main(args: Array[String]): Unit = {
@@ -37,11 +49,39 @@ object tagsContext {
     val stopword = spark.read.textFile("dir/keywords/*").rdd.map((_,0)).collectAsMap()
     val bcstopword = spark.sparkContext.broadcast(stopword)
 
+    // todo 调用Hbase API
+    // 加载配置文件
+    val load = ConfigFactory.load()
+    val hbaseTableName = load.getString("hbase.TableName")
+    // 创建Hadoop任务
+    val configuration = spark.sparkContext.hadoopConfiguration
+    configuration.set("hbase.zookeeper.quorum",load.getString("hbase.host"))
+    //    configuration.set("hbase.zookeeper.quorum", load.getString("hbase.zookeeper.quorum"))
+    //    configuration.set("hbase.zookeeper.property.clientPort", load.getString("hbase.zookeeper.property.clientPort"))
+    // 创建HbaseConnection
+    val hbconn = ConnectionFactory.createConnection(configuration)
+    val hbadmin = hbconn.getAdmin
+    // 判断表是否可用
+    if(!hbadmin.tableExists(TableName.valueOf(hbaseTableName))){
+      // 创建表操作
+      val tableDescriptor = new HTableDescriptor(TableName.valueOf(hbaseTableName))
+      val descriptor = new HColumnDescriptor("tags")
+      tableDescriptor.addFamily(descriptor)
+      hbadmin.createTable(tableDescriptor)
+      hbadmin.close()
+      hbconn.close()
+    }
+    // 创建JobConf
+    val jobconf = new JobConf(configuration)
+    // 指定输出类型和表
+    jobconf.setOutputFormat(classOf[TableOutputFormat])
+    jobconf.set(TableOutputFormat.OUTPUT_TABLE,hbaseTableName)
 
 
     import spark.implicits._
     // 过滤符合Id的数据
-    val test = df.filter(TagUtils.OneUserId)
+    val test = df
+      .filter(TagUtils.OneUserId)
       // 接下来所有的标签都在内部实现
       .map(row => {
       // 取出用户Id
@@ -57,9 +97,11 @@ object tagsContext {
 
       val keywordList = TagsKeyWords.makeTags(row,bcstopword)
 
-      val locationtagslist: List[(String, Int)] = TagsLocation.makeTags(row)
+      val locational: List[(String, Int)] = TagsLocation.makeTags(row)
 
-      (userId,adtagslist++appnamelist++adplatformlist++machinetagslist++keywordList++locationtagslist)
+      val business: List[(String, Int)] = BusinessTag.makeTags(row)
+
+      (userId,adtagslist++appnamelist++adplatformlist++machinetagslist++keywordList++locational++business)
     })
     test.rdd.reduceByKey((list1,list2)=>
       // List(("lN插屏",1),("LN全屏",1),("ZC沈阳",1),("ZP河北",1)....)
@@ -68,13 +110,31 @@ object tagsContext {
         .groupBy(_._1)
         .mapValues(_.foldLeft[Int](0)(_+_._2))
         .toList
-    ).foreach(println)
+    )
+    .map{
+      case(userid,userTag)=>{
+
+
+        val put = new Put(Bytes.toBytes(userid))
+        // 处理下标签
+        val tags = userTag.map(t=>t._1+","+t._2).mkString(",")
+        put.addImmutable(Bytes.toBytes("tags"),Bytes.toBytes("20190826"),Bytes.toBytes(tags))
+        (new ImmutableBytesWritable(),put)
+      }
+    }
+      .saveAsHadoopDataset(jobconf)
+
+//    .foreach(println)
+
+
+
+//    println(test.count())
   }
 
 
   //redis存储
   val rediscoon = (it : Iterator[(String,String)]) => {
-    val jedis = new Jedis("hadoop02", 6379)
+    val jedis = new Jedis("192.168.146.11", 6379)
     it.foreach(tup => {
       jedis.hset("AppInfo",tup._2,tup._1)
     })

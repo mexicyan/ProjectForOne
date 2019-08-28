@@ -10,6 +10,8 @@ object Type {
     val sc = new SparkContext(conf)
 
     val file = sc.textFile("dir/json/json.txt")
+
+
     val result2: RDD[String] = file.map(line => {
       // 创建集合 保存数据
       val buffer = collection.mutable.ListBuffer[String]()
